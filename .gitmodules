@@ -1,0 +1,3 @@
+[submodule "dep/AlgebraEngine"]
+	path = dep/AlgebraEngine
+	url = https://github.com/alex4o/AlgebraEngine.git

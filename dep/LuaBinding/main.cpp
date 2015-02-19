@@ -1,24 +1,18 @@
-extern "C" {
-
-	#include "lua.h"
-	#include "lualib.h"
-	#include "lauxlib.h"
-
-}
-
 using namespace std;
 
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <random>
-
+#include "SPolynomial.hpp"
 #include "Generator.hpp"
 
 std::string gen_string(Polynomial* polynomial){
 	//std::string str;
 	std::stringstream ss;
 	int size = polynomial->monos.size();
+
+
+
 	for(int i = 0; i < size; i++)
 	{
 
@@ -58,6 +52,25 @@ std::string gen_string(Polynomial* polynomial){
 	return ss.str();
 }
 
+std::string gen_string(SPolynomial* poly){
+	std::stringstream ss;
+
+		for(int i = poly->power; i>=0; i--)
+		{
+			if(poly->coef[i]==0) continue;
+
+				if(poly->coef[i].isNatural()) ss<<poly->coef[i].fraction.up;
+				else if(poly->coef[i].isRational())
+				{
+				ss<<"\\frac{"<<poly->coef[i].fraction.up<<"}{"<<poly->coef[i].fraction.down<<"}";
+				}
+
+			ss<<poly->letter<<"^"<<i<<" + ";
+		}
+	return ss.str();
+}
+
+/*
 static int lua_run( lua_State *L )
 {
 	RootDescriptor rd;
@@ -80,52 +93,75 @@ static int lua_run( lua_State *L )
 	  
 
 	lua_pushlstring(L,mon.c_str(),mon.size());
-    return 1;
+	return 1;
 }
 
 static const luaL_Reg foo[] = {
-        { "run", lua_run },
-        { NULL, NULL }
+		{ "run", lua_run },
+		{ NULL, NULL }
  };
-
+*/
 extern "C" {
-const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh,int dl)
+const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh,int dl,int count)
 {
-	RootDescriptor rd;
-	rd.pFraction=Fraction;
-	rd.pNatural=Natural;
-	rd.pIrational=Irational;
-	rd.upHigh=uh;
-	rd.upLow=ul;
-	rd.downHigh=dh;
-	rd.downLow=dl;
+	Generator gen;
 
-	std::random_device r_dev;
 
-	Monomial m(Number(rng(1, 20,&r_dev)));
-	Polynomial c = generate(3, rd, 'x',&r_dev);
-	c = multByMono(c, m);
+
+
+	gen.descriptor.pFraction=Fraction;
+	gen.descriptor.pNatural=Natural;
+	gen.descriptor.pIrational=Irational;
+	gen.descriptor.upHigh=uh;
+	gen.descriptor.upLow=ul;
+	gen.descriptor.downHigh=dh;
+	gen.descriptor.downLow=dl;
+
+	/*
+	SPolynomial a, b;
+	a.letter='x';
+	b.letter='x';
+	a.power=1;
+	a.coef[0]=-2;
+	a.coef[1]=1;
+//a.coef[2]=2;
+	b.power=1;
+	b.coef[0]=0;
+	b.coef[1]=2;
+	a.print();
+	cout<<endl;
+	b.print();
+	cout<<endl;
+	SPolynomial c= a*b;
+	c.letter='x';
+	//std::random_device r_dev;
+	//Monomial m(Number(rng(1, 20,&r_dev)));
+	*/
+	Polynomial c = gen.generate(count,'x');
+	//c = multByMono(c, m);
 	
 	
 	std::string mon = gen_string(&c);
 	return mon.c_str();
 }
-
+/*
 int luaopen_gen(lua_State *L){
 	
 	luaL_openlib(L, "gen", foo, 0);
 	return 1;
 } 
+*/
 }
 
 
 int main(int argc, char **argv)
 {
-	
+	/*
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 	lua_newtable(L); 
 	luaL_openlib(L, "gen", foo, 0);
 	luaL_dostring(L, "print(gen.run())");
+	*/
 	return 0;
 }

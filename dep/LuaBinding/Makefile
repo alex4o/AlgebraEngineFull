@@ -7,5 +7,5 @@ all:
 	g++ -shared -fPIC main.cpp -Wl,-rpath=./lib/ -std=c++11 -lAlgebraEngine -I../AlgebraEngine/ -I/usr/local/include/luajit-2.0/ -lluajit-5.1 -o $(LIB)
 
 install:
-	mv -v ../../$(LIB) ../../$(LIB).bak
-	mv -v $(LIB) ../../
+	cp -v $(LIB) /lib
+	cp -v $(LIB) /lib64

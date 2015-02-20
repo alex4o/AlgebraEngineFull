@@ -9,12 +9,49 @@ local pg = require('pgproc')
 
 ffi.cdef[[
 	const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh,int dl,int count);
+	
 
-	struct Result
+	typedef struct
 	{
 		char* problem;
 		char* solution;
-	};
+	} Result;
+
+	typedef struct
+	{
+	    int pNatural;
+	    int pRational;
+	    int pIrational;
+
+	    int pNegative;
+
+	    int upLow, upHigh, downLow, downHigh;
+	} CoefDescriptor;
+
+	typedef struct 
+	{
+	    int maxPow; //Maximum power of expression
+
+	    int maxLetters; //Minimal and maximum number of letters in subterm
+	    int minLetters;
+
+	    int maxTerms;
+	    int minTerms;
+
+	    int minSubTerm, maxSubTerm;
+
+	    bool factored;
+
+	    CoefDescriptor cf;//Descriptor for the coef of letters, for example the 3 in 3a
+	    CoefDescriptor transformCF;
+	    
+	    char letters[8];
+	    int cLetters;
+
+	} ExpressionDescriptor;
+
+	Result oprosti(ExpressionDescriptor ed);
+
 ]]
 
 
@@ -28,7 +65,7 @@ local secret = "itanimulli"
 local alg = "HS256"
 
 local gen = ffi.load("gen")
-local gen = ffi.load("AlgebraEngine")
+local ae = ffi.load("AlgebraEngine")
 
 
 module("hello", package.seeall, orbit.new)
@@ -121,5 +158,44 @@ function generate(down,up,F,N)
 end
 
 orbit.htmlify(hello, "render_.+")
+
+ed = ffi.new("ExpressionDescriptor")
+ -- res = ffi.new("Result")
+
+ed.minTerms=1;
+ed.maxTerms=3;
+
+ed.factored=false;
+ffi.copy(ed.letters,"abc")
+ed.cLetters=3;
+
+ed.minLetters=2;
+ed.maxLetters=3;
+
+ed.cf.pNatural=100;
+ed.cf.pNegative=50;
+ed.cf.pIrational=0;
+ed.cf.pRational=0;
+ed.cf.upHigh=7;
+ed.cf.upLow=1;
+
+ed.transformCF.pNatural=100;
+ed.transformCF.pIrational=0;
+ed.transformCF.pRational=0;
+ed.transformCF.upHigh=10;
+ed.transformCF.upLow=1;
+
+ed.minSubTerm=1;
+ed.maxSubTerm=2;
+
+ed.maxPow=4;
+
+print(ed.maxTerms)
+print(ed.maxSubTerm)
+
+res = ae.oprosti(ed)
+
+print(ffi.string(res.problem))
+print(ffi.string(res.solution))
 
 return _M

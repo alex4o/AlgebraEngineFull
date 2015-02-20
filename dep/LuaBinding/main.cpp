@@ -5,6 +5,10 @@ using namespace std;
 #include <vector>
 #include "SPolynomial.hpp"
 #include "Generator.hpp"
+#include "Interface.cpp"
+
+
+
 
 std::string gen_string(Polynomial* polynomial){
 	//std::string str;
@@ -70,45 +74,11 @@ std::string gen_string(SPolynomial* poly){
 	return ss.str();
 }
 
-/*
-static int lua_run( lua_State *L )
-{
-	RootDescriptor rd;
-	rd.pFraction=0;
-	rd.pNatural=100;
-	rd.pIrational=0;
-	rd.upHigh=10;
-	rd.upLow=1;
-	rd.downLow=1;
-	rd.downHigh=1;
-
-	std::random_device r_dev;
-
-	Monomial m(Number(rng(1, 20,&r_dev)));
-	Polynomial c = generate(3, rd, 'x',&r_dev);
-	c = multByMono(c, m);
-	
-	
-	std::string mon = gen_string(&c);
-	  
-
-	lua_pushlstring(L,mon.c_str(),mon.size());
-	return 1;
-}
-
-static const luaL_Reg foo[] = {
-		{ "run", lua_run },
-		{ NULL, NULL }
- };
-*/
 extern "C" {
+
 const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh,int dl,int count)
 {
 	Generator gen;
-
-
-
-
 	gen.descriptor.pFraction=Fraction;
 	gen.descriptor.pNatural=Natural;
 	gen.descriptor.pIrational=Irational;
@@ -137,7 +107,7 @@ const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh
 	//std::random_device r_dev;
 	//Monomial m(Number(rng(1, 20,&r_dev)));
 	*/
-	Polynomial c = gen.generate(count,'x');
+	Polynomial c = gen.generatePoly(count,'x');
 	//c = multByMono(c, m);
 	
 	
@@ -156,12 +126,6 @@ int luaopen_gen(lua_State *L){
 
 int main(int argc, char **argv)
 {
-	/*
-	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
-	lua_newtable(L); 
-	luaL_openlib(L, "gen", foo, 0);
-	luaL_dostring(L, "print(gen.run())");
-	*/
 	return 0;
+
 }

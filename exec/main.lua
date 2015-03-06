@@ -17,41 +17,72 @@ ffi.cdef[[
 		char* solution;
 	} Result;
 
+	typedef struct 
+	{
+		char* problem;
+		char* solution;
+		char* ptrProblem[30];
+		char* ptrSolution[30];
+		int count;
+	} MultiResult;
+
 	typedef struct
 	{
-	    int pNatural;
-	    int pRational;
-	    int pIrational;
+		int pNatural, pFraction, pIrational;
+		int upLow, upHigh, downLow, downHigh;
+		int pNegative;
+	} RootDescriptor;
 
-	    int pNegative;
+	typedef struct
+	{
+		int power;
+		int maxTermPower;
+		char letter;
+		RootDescriptor rd;
+		int minTerms;
+		int maxTerms;
+		bool nice;
+	} EquationDescriptor;
 
-	    int upLow, upHigh, downLow, downHigh;
+	typedef struct
+	{
+		int pNatural;
+		int pRational;
+		int pIrational;
+
+		int pNegative;
+
+		int upLow, upHigh, downLow, downHigh;
 	} CoefDescriptor;
 
 	typedef struct 
 	{
-	    int maxPow; //Maximum power of expression
+		int maxPow; //Maximum power of expression
 
-	    int maxLetters; //Minimal and maximum number of letters in subterm
-	    int minLetters;
+		int maxLetters; //Minimal and maximum number of letters in subterm
+		int minLetters;
 
-	    int maxTerms;
-	    int minTerms;
+		int maxTerms;
+		int minTerms;
 
-	    int minSubTerm, maxSubTerm;
+		int minSubTerm, maxSubTerm;
 
-	    bool factored;
+		bool factored;
 
-	    CoefDescriptor cf;//Descriptor for the coef of letters, for example the 3 in 3a
-	    CoefDescriptor transformCF;
-	    
-	    char letters[8];
-	    int cLetters;
+		CoefDescriptor cf;//Descriptor for the coef of letters, for example the 3 in 3a
+		CoefDescriptor transformCF;
+		
+		char letters[8];
+		int cLetters;
 
 	} ExpressionDescriptor;
 
 	Result oprosti(ExpressionDescriptor ed);
 
+	MultiResult getEquations(EquationDescriptor ed, int count);
+    MultiResult getExpressions(ExpressionDescriptor ed, int count);
+
+	void free(void *ptr);
 ]]
 
 
@@ -64,27 +95,97 @@ local secret = "itanimulli"
 
 local alg = "HS256"
 
-local gen = ffi.load("gen")
 local ae = ffi.load("AlgebraEngine")
 
+ExpressionDescriptor = ffi.new("ExpressionDescriptor")
+EquationDescriptor = ffi.new("EquationDescriptor")
 
-module("hello", package.seeall, orbit.new)
+
+ExpressionDescriptor.factored=false;
+
+
+module("math", package.seeall, orbit.new)
 
 function index(web)
 	return render_index()
 end
 
-function post_gen(web)
-	web:content_type("text/plain")
+function post_qe(web)
+	web:content_type("text/json")
 	local data = cjson.decode(web.POST.post_data)
-	tprint(data)
-	return generate(data.down, data.up, data.type[1], data.type[2])
+	--tprint(data)
+	return QuadraticEquation(data.down, data.up, data.type[1], data.type[2])
+end
+
+function post_ee(web)
+	web:content_type("text/json")
+	local data = cjson.decode(web.POST.post_data)
+
+	ExpressionDescriptor.maxPow = data.pow;
+	ExpressionDescriptor.minTerms=data.Term.min;
+	ExpressionDescriptor.maxTerms=data.Term.max;
+
+	ExpressionDescriptor.minSubTerm=1;
+	ExpressionDescriptor.maxSubTerm=data.pow
+
+	ExpressionDescriptor.minLetters=data.Letters.min;
+	ExpressionDescriptor.maxLetters=data.Letters.max;
+
+	ffi.copy(ExpressionDescriptor.letters,data.let)
+	ExpressionDescriptor.cLetters = #data.let
+
+
+	ExpressionDescriptor.cf.pNatural = data.coef.type[1];
+	ExpressionDescriptor.cf.pRational = data.coef.type[2];
+	ExpressionDescriptor.cf.upHigh = data.coef.up.high;
+	ExpressionDescriptor.cf.upLow = data.coef.up.low;
+	ExpressionDescriptor.cf.downHigh = data.coef.down.high; 
+	ExpressionDescriptor.cf.downLow = data.coef.down.low;
+
+
+
+	ExpressionDescriptor.transformCF.pNatural = data.tcoef.type[1];
+	ExpressionDescriptor.transformCF.pRational = data.tcoef.type[2];
+	ExpressionDescriptor.transformCF.upHigh = data.tcoef.up.high;
+	ExpressionDescriptor.transformCF.upLow = data.tcoef.up.low;
+	ExpressionDescriptor.transformCF.downHigh = data.tcoef.down.high; 
+	ExpressionDescriptor.transformCF.downLow = data.tcoef.down.low;
+
+
+	ExpressionDescriptor.cf.pIrational = 0;
+	ExpressionDescriptor.transformCF.pIrational = 0;
+
+	-- tprint(data)
+
+
+	return EquivalentExpression(data.cor)
+end
+
+function post_get_equation(web)
+	web:content_type("text/json")
+	local data = cjson.decode(web.POST.post_data)
+	-- tprint(data)
+
+	EquationDescriptor.power = data.pow	
+	EquationDescriptor.maxTermPower = data.powTerm
+	EquationDescriptor.letter = string.byte(data.let:sub(1,1))
+	EquationDescriptor.minTerms = data.Term.min
+	EquationDescriptor.maxTerms = data.Term.max
+	
+	EquationDescriptor.rd.pNatural = data.root.type[1];
+	EquationDescriptor.rd.pFraction = data.root.type[2];
+	EquationDescriptor.rd.upHigh = data.root.up.high;
+	EquationDescriptor.rd.upLow = data.root.up.low;
+	EquationDescriptor.rd.downHigh = data.root.down.high; 
+	EquationDescriptor.rd.downLow = data.root.down.low;
+
+	return getEquation(data.cor)
 end
 
 function login(web)
 	web:content_type("application/jwt")
 	local data = cjson.decode(web.POST.post_data)
-	tprint(data)
+	--tprint(data)
 	id = public.get_user(data.pass,data.name)["get_user"]
 	if id == "" then
 		payload = {
@@ -95,7 +196,7 @@ function login(web)
 			user_id = id
 		}
 	end
-	print(type(id))
+	--print(type(id))
 
 	local token = jwt.encode(payload, secret, alg)
 	return token
@@ -105,31 +206,22 @@ end
 function signup(web)
 	web:content_type("application/jwt")
 	local data = cjson.decode(web.POST.post_data)
-	tprint(data)
+	--tprint(data)
 	res = public.create_user(data.username,data.password)
 
-	print(res)
+	--print(res)
 end
 
-function tprint (tbl, indent)
-  if not indent then indent = 0 end
-  for k, v in pairs(tbl) do
-    formatting = string.rep("  ", indent) .. k .. ": "
-    if type(v) == "table" then
-      print(formatting)
-      tprint(v, indent+1)
-    elseif type(v) == 'boolean' then
-      print(formatting .. tostring(v))      
-    else
-      print(formatting .. v)
-    end
-  end
-end
 
-hello:dispatch_get(index, "/", "/index.html")
-hello:dispatch_post(post_gen, "/gen/")
-hello:dispatch_post(login,"/login/")
-hello:dispatch_post(signup,"/signup/")
+math:dispatch_post(post_get_equation, "/gen/Equation/")
+math:dispatch_get(index, "/", "/index.html")
+math:dispatch_post(post_qe, "/gen/QuadraticEquation/")
+math:dispatch_post(post_ee, "/gen/EquivalentExpression/")
+
+
+
+math:dispatch_post(login,"/login/")
+math:dispatch_post(signup,"/signup/")
 
 
 
@@ -148,54 +240,55 @@ function render_index()
 	return render_layout(render_hello())
 end
 
-function generate(down,up,F,N)
-	
+function EquivalentExpression(cor)
+	results = {}
+	res = ae.getExpressions(ExpressionDescriptor,cor)
 
-	local c_res = gen.generate(F,N,0,up.high,up.low,down.high,down.low,3)
-	local math = ffi.string(c_res)
-	print(math)
-	return math
+	for i=0,res.count-1 do
+		results[#results+1] = {
+							problem = ffi.string(res.ptrProblem[i]),
+							solution = ffi.string(res.ptrSolution[i])
+							}
+
+	end
+
+	
+	-- tprint(results)
+
+	ffi.C.free(res.problem)
+	ffi.C.free(res.solution)
+	return cjson.encode(results);
 end
 
-orbit.htmlify(hello, "render_.+")
+function getEquation(cor)
+	results = {}
+	res = ae.getEquations(EquationDescriptor,cor)
+	
+	for i=0,res.count-1 do
+		results[#results+1] = {
+							problem = ffi.string(res.ptrProblem[i]),
+							solution = ffi.string(res.ptrSolution[i])
+							}
 
-ed = ffi.new("ExpressionDescriptor")
- -- res = ffi.new("Result")
+	end
 
-ed.minTerms=1;
-ed.maxTerms=3;
+	ffi.C.free(res.problem);
+	ffi.C.free(res.solution);
 
-ed.factored=false;
-ffi.copy(ed.letters,"abc")
-ed.cLetters=3;
+	-- tprint(results)
+	return cjson.encode(results)
+end
 
-ed.minLetters=2;
-ed.maxLetters=3;
+function QuadraticEquation(down,up,F,N)
+	local c_res = gen.generate(F,N,0,up.high,up.low,down.high,down.low,3)
+	local math = {
+		problem = ffi.string(c_res)
+	}
+	-- tprint(math)
+	return cjson.encode(math)
 
-ed.cf.pNatural=100;
-ed.cf.pNegative=50;
-ed.cf.pIrational=0;
-ed.cf.pRational=0;
-ed.cf.upHigh=7;
-ed.cf.upLow=1;
+end
 
-ed.transformCF.pNatural=100;
-ed.transformCF.pIrational=0;
-ed.transformCF.pRational=0;
-ed.transformCF.upHigh=10;
-ed.transformCF.upLow=1;
-
-ed.minSubTerm=1;
-ed.maxSubTerm=2;
-
-ed.maxPow=4;
-
-print(ed.maxTerms)
-print(ed.maxSubTerm)
-
-res = ae.oprosti(ed)
-
-print(ffi.string(res.problem))
-print(ffi.string(res.solution))
+orbit.htmlify(math, "render_.+")
 
 return _M

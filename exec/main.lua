@@ -1,11 +1,14 @@
+-- loading libraries
+
+local ffi = require("ffi")
+
 local orbit = require("orbit")
 local cjson = require("cjson")
--- local gen = require "gen"
-local ffi = require("ffi")
 local jwt = require("luajwt")
 local base64 = require("base64")
 local pg = require('pgproc')
 
+-- defineing the C functions that will be used 
 
 ffi.cdef[[
 	const char* generate(int Fraction,int Natural,int Irational,int uh,int ul,int dh,int dl,int count);
@@ -85,17 +88,22 @@ ffi.cdef[[
 	void free(void *ptr);
 ]]
 
-
+-- connecting to the databes
 
 pg.connect("host=postgres  user='postgres' password=illuminati dbname=postgres")
 pg.bind("public")
 
+-- defineing vars for jwt
 
 local secret = "itanimulli"
 
 local alg = "HS256"
 
+-- loading /lib64/libalgebraEngine.so the generator library
+
 local ae = ffi.load("AlgebraEngine")
+
+-- alocate descriptors
 
 ExpressionDescriptor = ffi.new("ExpressionDescriptor")
 EquationDescriptor = ffi.new("EquationDescriptor")
@@ -105,6 +113,7 @@ ExpressionDescriptor.factored=false;
 
 
 module("math", package.seeall, orbit.new)
+
 
 function index(web)
 	return render_index()
@@ -212,6 +221,7 @@ function signup(web)
 	--print(res)
 end
 
+-- routing the controllers  
 
 math:dispatch_post(post_get_equation, "/gen/Equation/")
 math:dispatch_get(index, "/", "/index.html")
@@ -223,23 +233,17 @@ math:dispatch_post(post_ee, "/gen/EquivalentExpression/")
 math:dispatch_post(login,"/login/")
 math:dispatch_post(signup,"/signup/")
 
-
-
-function render_layout(inner_html)
+function render_index()
 	return html{
-		head{ title "Hello World" },
-		body{ inner_html }
+		head{ title "How did you get here?" },
+		body{ p.hello"yhis is the api"}
 	}
 end
 
-function render_hello()
-	return p.hello"Hello Shit!" .. a
-end
-
-function render_index()
-	return render_layout(render_hello())
-end
-
+--[[
+the following 3 functions call functions from Interface.cpp 
+using the ffi definitions made on line 12.
+]]
 function EquivalentExpression(cor)
 	results = {}
 	res = ae.getExpressions(ExpressionDescriptor,cor)
@@ -257,6 +261,7 @@ function EquivalentExpression(cor)
 
 	ffi.C.free(res.problem)
 	ffi.C.free(res.solution)
+	
 	return cjson.encode(results);
 end
 

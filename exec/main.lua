@@ -107,12 +107,13 @@ local ae = ffi.load("AlgebraEngine")
 
 ExpressionDescriptor = ffi.new("ExpressionDescriptor")
 EquationDescriptor = ffi.new("EquationDescriptor")
-
+--print(cjson.encode(ExpressionDescriptor))
 
 ExpressionDescriptor.factored=false;
 
 
 module("math", package.seeall, orbit.new)
+
 
 
 function index(web)
